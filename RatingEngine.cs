@@ -1,4 +1,4 @@
-﻿using Newtonsoft.Json;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using System;
 using System.IO;
@@ -12,112 +12,144 @@ namespace Nipendo.Evaluation
     public class RatingEngine
     {
         public decimal Rating { get; set; }
+
         public void Rate()
         {
             // log start rating
             Console.WriteLine("Starting rate.");
 
+            Policy policy = LoadPolicy("policy.json");
+
+            Rating = RatePolicy(policy);
+
+            // log finish rating
+            Console.WriteLine("Rating completed.");
+        }
+
+        // Load Policy from a file
+        public static Policy LoadPolicy(string fileName)
+        {
+            // log start rating
             Console.WriteLine("Loading policy.");
 
             // load policy - open file policy.json
-            string policyJson = File.ReadAllText("policy.json");
+            string policyJson = File.ReadAllText(fileName);
 
-            var policy = JsonConvert.DeserializeObject<Policy>(policyJson,
+            Policy policy = JsonConvert.DeserializeObject<Policy>(policyJson,
                 new StringEnumConverter());
 
+            return policy;
+        }
+
+        // Calculate Rating from a policy by type
+        public static decimal RatePolicy(Policy policy)
+        {
+            Console.WriteLine("Rating " + policy.Type.ToString().ToUpper() +
+                              " policy...\nValidating policy.");
             switch (policy.Type)
             {
                 case PolicyType.Health:
-                    Console.WriteLine("Rating HEALTH policy...");
-                    Console.WriteLine("Validating policy.");
-
-                    if (string.IsNullOrEmpty(policy.Gender))
-                    {
-                        Console.WriteLine("Health policy must specify Gender");
-                        return;
-                    }
-
-                    Rating = 1000m;
-
-                    if (policy.Gender == "Male")
-                    {
-                        Rating -= 100m;
-                    }
-
-                    break;
-
+                    return RateHealthPolicy(policy);
                 case PolicyType.Travel:
-                    Console.WriteLine("Rating TRAVEL policy...");
-                    Console.WriteLine("Validating policy.");
-                    if (string.IsNullOrEmpty(policy.Country))
-                    {
-                        Console.WriteLine("Travel policy must specify country.");
-                        return;
-                    }
-                    if (policy.Days <=0)
-                    {
-                        Console.WriteLine("Travel policy must specify Days.");
-                        return;
-                    }
-                    if (policy.Days >180)
-                    {
-                        Console.WriteLine("Travel policy cannot be more then 180 Days.");
-                        return;
-                    }
-
-                    Rating = policy.Days * 2.5m;
-
-                    if (policy.Country == "Italy")
-                    {
-                        Rating *= 3;
-                    }
-
-                    break;
-
+                    return RateTravelPolicy(policy);
                 case PolicyType.Life:
-                    DateTime todayDateTime = DateTime.Today;
-                    Console.WriteLine("Rating LIFE policy...");
-                    Console.WriteLine("Validating policy.");
-                    if (policy.DateOfBirth == DateTime.MinValue)
-                    {
-                        Console.WriteLine("Life policy must include Date of Birth.");
-                        return;
-                    }
-                    if (policy.DateOfBirth < todayDateTime.AddYears(-100))
-                    {
-                        Console.WriteLine("Max eligible age for coverage is 100 years.");
-                        return;
-                    }
-                    if (policy.Amount == 0)
-                    {
-                        Console.WriteLine("Life policy must include an Amount.");
-                        return;
-                    }
-                    
-                    int age = todayDateTime.Year - policy.DateOfBirth.Year;
-
-                    if (policy.DateOfBirth.Month == todayDateTime.Month &&
-                        todayDateTime.Month < policy.DateOfBirth.Month ||
-                        todayDateTime.Day < policy.DateOfBirth.Day)
-                    {
-                        age--;
-                    }
-
-                    Rating = policy.Amount * age / 200;
-
-                    if (policy.IsSmoker)
-                    {
-                        Rating *= 2;
-                    }
-
-                    break;
-
+                    return RateLifePolicy(policy);
                 default:
                     Console.WriteLine("Unknown policy type");
-                    break;
+                    return 0m;
+            }
+        }
+
+        // Health Policy
+        public static decimal RateHealthPolicy(Policy policy)
+        {
+            // Conditions
+            if (string.IsNullOrEmpty(policy.Gender))
+            {
+                Console.WriteLine("Health policy must specify Gender");
+                return 0m;
             }
 
-            Console.WriteLine("Rating completed.");
+            // Rating logic
+            if (policy.Gender == "Male")
+            {
+                return 900m;
+            }
+
+            return 1000m;
+        }
+
+        // Travel Policy
+        public static decimal RateTravelPolicy(Policy policy)
+        {
+            // Conditions
+            if (string.IsNullOrEmpty(policy.Country))
+            {
+                Console.WriteLine("Travel policy must specify country.");
+                return 0m;
+            }
+
+            if (policy.Days <= 0)
+            {
+                Console.WriteLine("Travel policy must specify Days.");
+                return 0m;
+            }
+
+            if (policy.Days > 180)
+            {
+                Console.WriteLine("Travel policy cannot be more then 180 Days.");
+                return 0m;
+            }
+
+            // Rating logic
+            if (policy.Country == "Italy")
+            {
+                return 3 * policy.Days * 2.5m;
+            }
+
+            return policy.Days * 2.5m;
+        }
+
+        // Life Policy
+        public static decimal RateLifePolicy(Policy policy)
+        {
+            // Conditions
+            DateTime todayDateTime = DateTime.Today;
+
+            if (policy.DateOfBirth == DateTime.MinValue)
+            {
+                Console.WriteLine("Life policy must include Date of Birth.");
+                return 0m;
+            }
+
+            if (policy.DateOfBirth < todayDateTime.AddYears(-100))
+            {
+                Console.WriteLine("Max eligible age for coverage is 100 years.");
+                return 0m;
+            }
+
+            if (policy.Amount == 0)
+            {
+                Console.WriteLine("Life policy must include an Amount.");
+                return 0m;
+            }
+
+            // Rating logic
+            int age = todayDateTime.Year - policy.DateOfBirth.Year;
+
+            if (policy.DateOfBirth.Month == todayDateTime.Month &&
+                todayDateTime.Month < policy.DateOfBirth.Month ||
+                todayDateTime.Day < policy.DateOfBirth.Day)
+            {
+                age--;
+            }
+
+            if (policy.IsSmoker)
+            {
+                return 2 * policy.Amount * age / 200;
+            }
+
+            return policy.Amount * age / 200;
         }
     }
 }
