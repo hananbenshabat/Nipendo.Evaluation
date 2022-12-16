@@ -71,12 +71,9 @@ namespace Nipendo.Evaluation
             }
 
             // Rating logic
-            if (policy.Gender == "Male")
-            {
-                return 900m;
-            }
+            decimal policyRating = 1000m;
 
-            return 1000m;
+            return policy.Gender == "Male" ? policyRating - 100m : policyRating;
         }
 
         // Travel Policy
@@ -102,12 +99,9 @@ namespace Nipendo.Evaluation
             }
 
             // Rating logic
-            if (policy.Country == "Italy")
-            {
-                return 3 * policy.Days * 2.5m;
-            }
+            decimal policyRating = policy.Days * 2.5m;
 
-            return policy.Days * 2.5m;
+            return policy.Country == "Italy" ? 3 * policyRating : policyRating;
         }
 
         // Life Policy
@@ -144,12 +138,9 @@ namespace Nipendo.Evaluation
                 age--;
             }
 
-            if (policy.IsSmoker)
-            {
-                return 2 * policy.Amount * age / 200;
-            }
+            decimal policyRating = policy.Amount * age / 200;
 
-            return policy.Amount * age / 200;
+            return policy.IsSmoker ? 2 * policyRating : policyRating;
         }
     }
 }
